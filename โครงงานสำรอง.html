@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Thai Talk Assistant - Gender Support</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Inter:wght@400;600&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', 'Kanit', 'Noto Sans SC', sans-serif;
+            background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: manipulation;
+            overscroll-behavior-y: none;
+        }
+        .thai-font { font-family: 'Kanit', sans-serif; }
+        
+        /* Active States */
+        .tab-active {
+            background-color: #10b981;
+            color: white !important;
+            border-color: #10b981 !important;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+        }
+        .lang-active {
+            background-color: #334155;
+            color: #10b981;
+            font-weight: 700;
+        }
+        .gender-active {
+            background-color: white;
+            color: #0f172a; /* slate-900 */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Card Animation */
+        .phrase-card {
+            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s;
+        }
+        .phrase-card:active {
+            transform: scale(0.97);
+            background-color: #e2e8f0;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-slate-900 overflow-hidden h-screen flex flex-col">
+
+    <!-- Header Section -->
+    <header class="flex-none bg-white border-b border-slate-200 z-50">
+        <!-- Top Bar: Logo & Language -->
+        <div class="bg-slate-900 text-white px-4 py-3 flex justify-between items-center shadow-md">
+            <div class="flex items-center gap-2">
+                <div class="bg-emerald-500 p-1.5 rounded-lg shadow-lg shadow-emerald-900/50">
+                    <i data-lucide="message-circle" class="w-4 h-4 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold leading-none tracking-tight">Thai Talk</h1>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <!-- Gender Switcher -->
+                <div class="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+                    <button onclick="setGender('male', this)" class="gender-btn flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all gender-active text-slate-300">
+                        <span>👨</span> <span class="hidden sm:inline">Male</span>
+                    </button>
+                    <button onclick="setGender('female', this)" class="gender-btn flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">
+                        <span>👩</span> <span class="hidden sm:inline">Female</span>
+                    </button>
+                </div>
+
+                <!-- Language Switcher -->
+                <div class="flex bg-slate-800 p-0.5 rounded-lg gap-0.5 border border-slate-700">
+                    <button onclick="setBaseLang('en', this)" class="lang-btn w-8 py-1 text-[10px] font-bold rounded-md transition-all lang-active">EN</button>
+                    <button onclick="setBaseLang('ms', this)" class="lang-btn w-8 py-1 text-[10px] font-bold rounded-md transition-all text-slate-400 hover:text-white">MS</button>
+                    <button onclick="setBaseLang('zh', this)" class="lang-btn w-8 py-1 text-[10px] font-bold rounded-md transition-all text-slate-400 hover:text-white">ZH</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Category Tabs -->
+        <nav class="flex overflow-x-auto no-scrollbar bg-white px-3 py-3 gap-2 shadow-sm border-b border-slate-100">
+            <button onclick="filterCategory('all', this)" class="category-btn tab-active whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 transition-all text-slate-600">All</button>
+            <button onclick="filterCategory('social', this)" class="category-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 bg-slate-50 text-slate-500">Social</button>
+            <button onclick="filterCategory('shopping', this)" class="category-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 bg-slate-50 text-slate-500">Shop</button>
+            <button onclick="filterCategory('food', this)" class="category-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 bg-slate-50 text-slate-500">Eat</button>
+            <button onclick="filterCategory('transport', this)" class="category-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 bg-slate-50 text-slate-500">Go</button>
+            <button onclick="filterCategory('emergency', this)" class="category-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 bg-slate-50 text-red-500">SOS</button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-40 relative w-full max-w-md mx-auto">
+        
+        <!-- Search Input -->
+        <div class="sticky top-0 z-30 bg-[#f1f5f9] pb-4 pt-1">
+            <div class="relative shadow-sm group">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i data-lucide="search" class="h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors"></i>
+                </div>
+                <input type="text" id="searchInput" 
+                       placeholder="Search..." 
+                       class="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-all shadow-sm text-slate-700">
+            </div>
+        </div>
+
+        <!-- Phrases List -->
+        <div id="phrases-list" class="space-y-3">
+            <!-- Dynamic Content -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden flex-col items-center justify-center py-10 text-slate-400">
+            <i data-lucide="search-x" class="w-10 h-10 mb-2 opacity-50"></i>
+            <p class="text-xs">No phrases found</p>
+        </div>
+    </main>
+
+    <!-- Bottom Quick Actions -->
+    <div class="flex-none bg-white border-t border-slate-100 px-4 py-3 pb-8 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-50">
+        <div class="grid grid-cols-4 gap-4 max-w-md mx-auto">
+            <button onclick="speakQuick('hello')" class="flex flex-col items-center gap-1 active:scale-95 transition-transform group">
+                <div class="bg-emerald-100 text-emerald-600 p-3 rounded-2xl group-active:bg-emerald-600 group-active:text-white transition-colors shadow-sm">
+                    <i data-lucide="smile" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[10px] font-bold text-slate-600">Hello</span>
+            </button>
+            <button onclick="speakQuick('thanks')" class="flex flex-col items-center gap-1 active:scale-95 transition-transform group">
+                <div class="bg-blue-100 text-blue-600 p-3 rounded-2xl group-active:bg-blue-600 group-active:text-white transition-colors shadow-sm">
+                    <i data-lucide="heart" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[10px] font-bold text-slate-600">Thanks</span>
+            </button>
+            <button onclick="speakQuick('price')" class="flex flex-col items-center gap-1 active:scale-95 transition-transform group">
+                <div class="bg-orange-100 text-orange-600 p-3 rounded-2xl group-active:bg-orange-600 group-active:text-white transition-colors shadow-sm">
+                    <i data-lucide="banknote" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[10px] font-bold text-slate-600">Price</span>
+            </button>
+            <button onclick="speakQuick('toilet')" class="flex flex-col items-center gap-1 active:scale-95 transition-transform group">
+                <div class="bg-purple-100 text-purple-600 p-3 rounded-2xl group-active:bg-purple-600 group-active:text-white transition-colors shadow-sm">
+                    <i data-lucide="map-pin" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[10px] font-bold text-slate-600">Toilet</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA STRUCTURE ---
+        // type: 'normal' (just add particle), 'pronoun' (swap phom/chan), 'none' (no changes needed)
+        const rawPhrases = [
+            // Social
+            { base: "สวัสดี", readBase: "Sa-was-dee", type: "normal", en: "Hello / Goodbye", ms: "Helo / Selamat tinggal", zh: "你好 / 再见", cat: "social" },
+            { base: "ขอบคุณ", readBase: "Khob-khun", type: "normal", en: "Thank you", ms: "Terima kasih", zh: "谢谢", cat: "social" },
+            { base: "ขอโทษ", readBase: "Kho-thod", type: "normal", en: "Excuse me / Sorry", ms: "Maaf / Tumpang tanya", zh: "对不起 / 请问", cat: "social" },
+            { base: "ยินดีที่ได้รู้จัก", readBase: "Yin-dee tee dai roo-juk", type: "normal", en: "Nice to meet you", ms: "Selamat berkenalan", zh: "很高兴认识你", cat: "social" },
+            
+            // Pronoun Cases (I am...)
+            { base: "หลงทาง", prefix_m: "ผม", prefix_f: "ฉัน", readBase: "long thang", type: "pronoun", en: "I am lost", ms: "Saya sesat", zh: "我迷路了", cat: "emergency" },
+            { base: "พูดภาษาอังกฤษได้ไหม", readBase: "Poot Eng-lish dai mai", type: "normal", en: "Can you speak English?", ms: "Boleh cakap English?", zh: "你会说英语吗？", cat: "social" },
+
+            // Shopping
+            { base: "ราคาเท่าไหร่", readBase: "Ra-ka tao-rai", type: "normal", en: "How much?", ms: "Berapa harganya?", zh: "多少钱？", cat: "shopping" },
+            { base: "ลดหน่อยได้ไหม", readBase: "Lod noi dai mai", type: "normal", en: "Can you discount?", ms: "Boleh kurang lagi?", zh: "便宜一点行吗？", cat: "shopping" },
+            { base: "สแกนจ่ายได้ไหม", readBase: "Scan jai dai mai", type: "normal", en: "Can I pay via QR?", ms: "Boleh scan QR?", zh: "可以扫码支付吗？", cat: "shopping" },
+            { base: "แพงไป", readBase: "Phaeng pai", type: "normal", en: "Too expensive", ms: "Terlalu mahal", zh: "太贵了", cat: "shopping" },
+            { base: "มีของไหม", readBase: "Mee khong mai", type: "normal", en: "Is it in stock?", ms: "Ada stok?", zh: "有货吗？", cat: "shopping" },
+            
+            // Dining
+            { base: "ไม่เผ็ด", readBase: "Mai phed", type: "normal", en: "Not spicy", ms: "Tak nak pedas", zh: "不要辣", cat: "food" },
+            { base: "เผ็ดนิดเดียว", readBase: "Phed nid diao", type: "normal", en: "A little spicy", ms: "Pedas sikit je", zh: "微辣", cat: "food" },
+            { base: "ไม่ใส่ผงชูรส", readBase: "Mai sai phong-choo-rod", type: "normal", en: "No MSG please", ms: "Tak nak MSG", zh: "不要味精", cat: "food" },
+            { base: "เช็คบิลด้วย", readBase: "Check bill duay", type: "normal", en: "Bill, please", ms: "Minta bil", zh: "请结账", cat: "food" },
+            { base: "ห้องน้ำอยู่ไหน", readBase: "Hong-nam yoo nai", type: "question", en: "Where is the toilet?", ms: "Tandas di mana?", zh: "洗手间在哪里？", cat: "food" },
+            { base: "อร่อยมาก", readBase: "A-roi mak", type: "normal", en: "Very delicious!", ms: "Sangat sedap!", zh: "很好吃！", cat: "food" },
+
+            // Transport
+            { base: "ไปสนามบิน", readBase: "Pai sa-nam-bin", type: "normal", en: "To the airport", ms: "Ke lapangan terbang", zh: "去机场", cat: "transport" },
+            { base: "เปิดมิเตอร์ด้วย", readBase: "Perd meter duay", type: "normal", en: "Use meter, please", ms: "Guna meter ya", zh: "请打表", cat: "transport" },
+            { base: "จอดตรงนี้", readBase: "Jord trong nee", type: "normal", en: "Stop here", ms: "Berhenti di sini", zh: "在这里停车", cat: "transport" },
+            { base: "เลี้ยวซ้าย", readBase: "Liao sai", type: "normal", en: "Turn left", ms: "Belok kiri", zh: "左转", cat: "transport" },
+            { base: "เลี้ยวขวา", readBase: "Liao khwa", type: "normal", en: "Turn right", ms: "Belok kanan", zh: "右转", cat: "transport" },
+            
+            // Emergency
+            { base: "ช่วยด้วย", readBase: "Chuay duay", type: "normal", en: "Help me!", ms: "Tolong saya!", zh: "救命！", cat: "emergency" },
+            { base: "สถานีตำรวจอยู่ไหน", readBase: "Sa-tha-nee tam-ruat yoo nai", type: "question", en: "Where is police station?", ms: "Di mana balai polis?", zh: "警察局在哪里？", cat: "emergency" },
+            { base: "ขอใช้โทรศัพท์หน่อย", readBase: "Kho chai tho-ra-sap noi", type: "normal", en: "Can I use your phone?", ms: "Boleh guna telefon?", zh: "可以借一下电话吗？", cat: "emergency" }
+        ];
+
+        // --- STATE ---
+        let synth = window.speechSynthesis;
+        let thaiVoice = null;
+        let currentCategory = 'all';
+        let baseLang = 'en';
+        let userGender = 'male'; // 'male' or 'female'
+
+        // --- HELPER: CONSTRUCT PHRASE ---
+        function getPhrase(item) {
+            let thai = item.base;
+            let read = item.readBase;
+
+            const particle = userGender === 'male' ? "ครับ" : "ค่ะ";
+            // Note: 'ค่ะ' (falling tone) for statements, 'คะ' (high tone) for questions
+            // keeping it simple for now as 'Ka' usually works broadly, but let's be precise if type is question
+            const femaleParticle = item.type === 'question' ? "คะ" : "ค่ะ"; 
+            const suffixThai = userGender === 'male' ? "ครับ" : femaleParticle;
+            
+            const suffixRead = userGender === 'male' ? " krub" : " ka";
+
+            if (item.type === 'normal' || item.type === 'question') {
+                thai += " " + suffixThai;
+                read += suffixRead;
+            } else if (item.type === 'pronoun') {
+                // Swap I (Phom/Chan)
+                const prefix = userGender === 'male' ? item.prefix_m : item.prefix_f;
+                const prefixRead = userGender === 'male' ? "Phom " : "Chan ";
+                thai = prefix + " " + thai + " " + suffixThai;
+                read = prefixRead + read + suffixRead;
+            }
+
+            return { thai, read };
+        }
+
+        // --- VOICE ENGINE ---
+        function initVoice() {
+            if (!synth) return;
+            const voices = synth.getVoices();
+            thaiVoice = voices.find(v => v.lang === 'th-TH' && v.localService) || 
+                        voices.find(v => v.lang.includes('th'));
+            if (!thaiVoice && voices.length === 0) setTimeout(initVoice, 200);
+        }
+
+        if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = initVoice;
+        initVoice();
+
+        function speak(text) {
+            if (!synth) return;
+            synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (thaiVoice) utterance.voice = thaiVoice;
+            utterance.lang = 'th-TH';
+            utterance.rate = 0.9;-
+            synth.speak(utterance);
+        }
+
+        function speakQuick(type) {
+            let text = "";
+            const particle = userGender === 'male' ? "ครับ" : "ค่ะ";
+            
+            if (type === 'hello') text = "สวัสดี" + particle;
+            if (type === 'thanks') text = "ขอบคุณ" + particle;
+            if (type === 'price') text = "เท่าไหร่" + (userGender === 'male' ? "ครับ" : "คะ");
+            if (type === 'toilet') text = "ห้องน้ำอยู่ไหน" + (userGender === 'male' ? "ครับ" : "คะ");
+            
+            speak(text);
+        }
+
+        // --- UI LOGIC ---
+        function setGender(gender, btn) {
+            userGender = gender;
+            
+            // Update UI
+            document.querySelectorAll('.gender-btn').forEach(b => {
+                b.classList.remove('gender-active', 'text-slate-900', 'bg-white', 'shadow-sm');
+                b.classList.add('text-slate-400', 'hover:text-white');
+            });
+            btn.classList.add('gender-active', 'text-slate-900', 'bg-white', 'shadow-sm');
+            btn.classList.remove('text-slate-400', 'hover:text-white');
+
+            // Re-render phrases with new gender rules
+            renderPhrases(document.getElementById('searchInput').value);
+        }
+
+        function setBaseLang(lang, btn) {
+            baseLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(b => {
+                b.classList.remove('lang-active', 'text-emerald-500', 'bg-slate-700');
+                b.classList.add('text-slate-400', 'hover:text-white');
+            });
+            btn.classList.add('lang-active');
+            btn.classList.remove('text-slate-400', 'hover:text-white');
+            renderPhrases(document.getElementById('searchInput').value);
+        }
+
+        function filterCategory(cat, btn) {
+            currentCategory = cat;
+            document.querySelectorAll('.category-btn').forEach(b => {
+                b.classList.remove('tab-active');
+                b.classList.add('bg-slate-50', 'text-slate-500', 'border-slate-200');
+            });
+            btn.classList.add('tab-active');
+            btn.classList.remove('bg-slate-50', 'text-slate-500', 'border-slate-200');
+            renderPhrases(document.getElementById('searchInput').value);
+        }
+
+        function renderPhrases(filterText = '') {
+            const list = document.getElementById('phrases-list');
+            const emptyState = document.getElementById('empty-state');
+            list.innerHTML = '';
+            
+            const filtered = rawPhrases.filter(item => {
+                const phrase = getPhrase(item);
+                const searchStr = (item[baseLang] + phrase.thai + phrase.read).toLowerCase();
+                const matchesSearch = searchStr.includes(filterText.toLowerCase());
+                const matchesCat = currentCategory === 'all' || item.cat === currentCategory;
+                return matchesSearch && matchesCat;
+            });
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            filtered.forEach(item => {
+                const phrase = getPhrase(item);
+                
+                const card = document.createElement('div');
+                card.className = "phrase-card bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer mb-2 active:bg-emerald-50";
+                card.onclick = () => speak(phrase.thai);
+                
+                card.innerHTML = `
+                    <div class="flex-1 pr-4">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${getCatClass(item.cat)} bg-opacity-10">${item.cat}</span>
+                        </div>
+                        <h3 class="thai-font text-xl font-bold text-slate-800 leading-tight mb-1">${phrase.thai}</h3>
+                        <p class="text-emerald-600 font-bold text-sm leading-snug">${item[baseLang]}</p>
+                        <p class="text-slate-400 text-[10px] font-medium mt-1 uppercase tracking-wider font-mono">${phrase.read}</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-full text-slate-400 transition-colors group-active:text-emerald-500 group-active:bg-white">
+                        <i data-lucide="volume-2" class="w-6 h-6"></i>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+            
+            lucide.createIcons();
+        }
+
+        function getCatClass(cat) {
+            switch(cat) {
+                case 'shopping': return 'text-orange-600 bg-orange-600';
+                case 'transport': return 'text-blue-600 bg-blue-600';
+                case 'food': return 'text-emerald-600 bg-emerald-600';
+                case 'emergency': return 'text-red-600 bg-red-600';
+                case 'social': return 'text-purple-600 bg-purple-600';
+                default: return 'text-slate-600 bg-slate-600';
+            }
+        }
+
+        document.getElementById('searchInput').oninput = (e) => renderPhrases(e.target.value);
+
+        window.onload = () => {
+            renderPhrases();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
